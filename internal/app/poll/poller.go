@@ -32,6 +32,7 @@ type poller struct {
 	clients []client.Client
 	runners []run.RunnerInterface
 	cfg     *config.Config
+	pause   pauseState
 
 	pollingCtx      context.Context
 	shutdownPolling context.CancelFunc
@@ -59,6 +60,7 @@ func (p *poller) init(ctx context.Context, cfg *config.Config, clients []client.
 	p.clients = clients
 	p.runners = runners
 	p.cfg = cfg
+	p.pause = newPauseState()
 
 	p.pollingCtx = pollingCtx
 	p.shutdownPolling = shutdownPolling
@@ -77,6 +79,7 @@ func (p *poller) Poll() {
 	}
 	taskVersions := make([]atomic.Int64, len(p.clients))
 	inProgressTasks := atomic.Int64{}
+	unresolvedFetches := atomic.Int64{}
 	wg := &sync.WaitGroup{}
 
 	// When we start a FetchTask, we'll be requesting (capacity - inProgressTasks) tasks from a remote and may receive
@@ -90,7 +93,7 @@ func (p *poller) Poll() {
 	log.Infof("[poller] launched")
 	for i := range p.clients {
 		wg.Go(func() {
-			p.pollForClient(limiters[i], p.clients[i], p.runners[i], capacity, fetchMutex, &taskVersions[i], &inProgressTasks, wg)
+			p.pollForClient(limiters[i], p.clients[i], p.runners[i], capacity, fetchMutex, &taskVersions[i], &inProgressTasks, &unresolvedFetches, wg)
 		})
 	}
 
@@ -101,7 +104,7 @@ func (p *poller) Poll() {
 	close(p.done)
 }
 
-func (p *poller) pollForClient(limiter *rate.Limiter, client client.Client, runner run.RunnerInterface, capacity int64, fetchMutex chan any, taskVersions, inProgressTasks *atomic.Int64, wg *sync.WaitGroup) {
+func (p *poller) pollForClient(limiter *rate.Limiter, client client.Client, runner run.RunnerInterface, capacity int64, fetchMutex chan any, taskVersions, inProgressTasks, unresolvedFetches *atomic.Int64, wg *sync.WaitGroup) {
 	// When the FetchTask() API is invoked to create a task, unpreventable environmental errors may occur; for example,
 	// network disconnects and timeouts. It's possible that these errors occur after the server-side has assigned a task
 	// to the runner during the API call, in which case the error would cause that task to be lost between the two
@@ -118,6 +121,10 @@ func (p *poller) pollForClient(limiter *rate.Limiter, client client.Client, runn
 	// new key when a successful call is received.
 	requestKey := gouuid.New()
 
+	// A fetch that failed may have been assigned a task on the server, which only a retry with its request key gets
+	// back. A pause therefore still retries it, and counts it as running work until it resolves.
+	unresolved := false
+
 	for {
 		if err := limiter.Wait(p.pollingCtx); err != nil {
 			log.Infof("[poller] shutdown begin, %d tasks currently running", inProgressTasks.Load())
@@ -126,10 +133,21 @@ func (p *poller) pollForClient(limiter *rate.Limiter, client client.Client, runn
 
 		fetchMutex <- struct{}{} // lock mutex
 		availableCapacity := capacity - inProgressTasks.Load()
+		if p.pause.update(inProgressTasks.Load()+unresolvedFetches.Load()) && !unresolved {
+			availableCapacity = 0
+		}
 		if availableCapacity > 0 {
 			log.Tracef("[poller] fetching at most %d tasks from client %s", availableCapacity, client.Address())
 			tasks, reuseRequestKey := p.fetchTasks(p.pollingCtx, client, taskVersions, availableCapacity, requestKey)
 			inProgressTasks.Add(int64(len(tasks)))
+			if reuseRequestKey != unresolved {
+				unresolved = reuseRequestKey
+				if unresolved {
+					unresolvedFetches.Add(1)
+				} else {
+					unresolvedFetches.Add(-1)
+				}
+			}
 
 			<-fetchMutex // unlock mutex by draining channel
 
