@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/kballard/go-shellquote"
 	"github.com/opencontainers/selinux/go-selinux"
@@ -402,8 +403,21 @@ func execAsDocker(ctx context.Context, step actionStep, actionName, basedir, sub
 		stepContainer.Create(rc.Config.ContainerCapAdd, rc.Config.ContainerCapDrop),
 		stepContainer.Start(true),
 	).Finally(
-		stepContainer.Remove().IfBool(!rc.Config.ReuseContainers),
+		removeDockerActionContainer(stepContainer, rc.Config.ReuseContainers),
 	).Finally(stepContainer.Close())(ctx)
+}
+
+// Remove may run after a canceled action. Keep context values (including the
+// logger) while giving the Docker API a bounded, uncanceled cleanup window.
+func removeDockerActionContainer(stepContainer container.Container, reuse bool) common.Executor {
+	return func(ctx context.Context) error {
+		if reuse {
+			return nil
+		}
+		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Minute)
+		defer cancel()
+		return stepContainer.Remove()(cleanupCtx)
+	}
 }
 
 func evalDockerArgs(ctx context.Context, step step, action *model.Action, cmd *[]string) error {
