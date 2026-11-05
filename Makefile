@@ -62,7 +62,7 @@ else
 	ifneq ($(STORED_VERSION),)
 		RELEASE_VERSION ?= $(STORED_VERSION)
 	else
-		RELEASE_VERSION ?= $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
+		RELEASE_VERSION ?= $(shell git describe --tags --always | sed -E 's/-([0-9]+)-g([0-9a-f]+)$$/+\1-g\2/; s/^v//')
 	endif
 endif
 

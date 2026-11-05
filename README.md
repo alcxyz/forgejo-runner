@@ -20,7 +20,8 @@ are welcome under our [contribution guide](CONTRIBUTING.md).
 
 - Docker action containers receive an independent one-minute cleanup timeout
   after cancellation, preserving context values and honoring container reuse.
-- Setting `FORGEJO_RUNNER_PAUSE_FILE` enables a pause file. While that file
+  Cleanup on an active job retains its original context and deadline.
+- In daemon mode, setting `FORGEJO_RUNNER_PAUSE_FILE` enables a pause file. While that file
   exists, the runner stops requesting new work and lets active jobs finish
   without a drain deadline. It resolves any outstanding uncertain fetch before
   reporting the runner idle. Removing the file resumes normal fetching.
@@ -30,7 +31,9 @@ are welcome under our [contribution guide](CONTRIBUTING.md).
 
 For example, configure `FORGEJO_RUNNER_PAUSE_FILE=/run/forgejo-runner/paused`
 in the runner service, then create that file to drain it. Ensure the service
-can read the file and the directory is managed by the service administrator.
+can search every parent directory; the file contents are not read. The service
+administrator should control the directory. Lookup errors other than a missing
+file log a warning and pause fetching until the path can be checked again.
 This fork adds the runner primitive; scheduling a restart belongs to the
 service manager or an external controller.
 
@@ -44,10 +47,10 @@ tag. Run the focused regressions, the unit suite and a local build before
 promotion and tagging. Test drain and cancellation behavior in a disposable
 runner before deploying a new version.
 
-Build a versioned binary locally with:
+Force a rebuild when selecting a version, including when a binary already exists:
 
 ```sh
-make build RELEASE_VERSION=13.2.1-alc.1
+make -B build RELEASE_VERSION=13.2.1-alc.1
 ```
 
 Our CI runs unit tests on `dev` and `main` pushes with external engine
@@ -56,6 +59,16 @@ pull requests on the shared runners; maintainers review contributions before
 bringing them into integration. It does not
 claim to validate Docker, Podman, LXC or a live Forgejo server. Upstream release
 publishing and cascading workflows are not used by this fork.
+
+## Security reports
+
+For a suspected vulnerability in this distribution, open a
+[Security contact request](https://git.alc.xyz/alcxyz/forgejo-runner/issues/new)
+using that issue template. Include only a contact method or profile you are
+comfortable making public. Do not post vulnerability details, reproduction
+steps, exploit code or private logs. The maintainer will arrange a private
+reporting channel. For flaws also affecting unmodified upstream, follow the
+[upstream security policy](https://code.forgejo.org/forgejo/runner#reporting-security-vulnerabilities).
 
 ## Contributing
 
@@ -153,4 +166,6 @@ List of all feature toggles:
 
 For running end-to-end tests during development, please see the instructions in the respective [repository where the end-to-end tests are maintained](https://code.forgejo.org/forgejo/end-to-end/).
 
-During CI, the end-to-end tests can be triggered for a particular pull request by attaching the label [`run-end-to-end-tests`](https://code.forgejo.org/forgejo/runner/pulls?labels=1032).
+This fork does not run end-to-end tests through PR labels. Run the upstream
+end-to-end suite separately against a disposable runner when validating engine
+or server integration.

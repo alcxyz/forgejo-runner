@@ -49,3 +49,15 @@ func TestRemoveDockerActionContainerReturnsRemovalError(t *testing.T) {
 	require.ErrorIs(t, removeDockerActionContainer(container, false)(t.Context()), want)
 	container.AssertExpectations(t)
 }
+
+func TestRemoveDockerActionContainerPreservesActiveContext(t *testing.T) {
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Minute)
+	defer cancel()
+	container := &containerMock{}
+	container.On("Remove").Return(func(cleanupCtx context.Context) error {
+		require.Same(t, ctx, cleanupCtx)
+		return nil
+	}).Once()
+	require.NoError(t, removeDockerActionContainer(container, false)(ctx))
+	container.AssertExpectations(t)
+}

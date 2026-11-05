@@ -1,9 +1,10 @@
-// Copyright The Forgejo Authors.
-// SPDX-License-Identifier: MIT
+// Copyright 2026 alcxyz.
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 package poll
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -11,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// pauseFileEnv names a file that pauses the runner while it exists: the runner
+// pauseFileEnv names a file that pauses the daemon poller while it exists: the runner
 // fetches no new tasks and lets the ones it runs finish, with no time limit.
 const pauseFileEnv = "FORGEJO_RUNNER_PAUSE_FILE"
 
@@ -37,7 +38,10 @@ func (s *pauseState) update(running int64) bool {
 		return false
 	}
 	_, err := os.Lstat(s.file)
-	paused := err == nil
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		log.WithError(err).Warn("[poller] could not check the pause file")
+	}
+	paused := !errors.Is(err, os.ErrNotExist)
 	status := ""
 	if paused {
 		status = fmt.Sprintf("paused tasks=%d", running)

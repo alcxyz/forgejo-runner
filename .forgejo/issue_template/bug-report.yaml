@@ -5,9 +5,10 @@ body:
   - type: markdown
     attributes:
       value: |
-        Contact the maintainer privately before publishing suspected vulnerabilities.
+        For suspected vulnerabilities, [request private contact](https://git.alc.xyz/alcxyz/forgejo-runner/issues/new)
+        using the Security contact request template, without publishing vulnerability details.
         For vulnerabilities also affecting unmodified upstream, follow the
-        [upstream security policy](https://forgejo.org/docs/latest/contributor/security/).
+        [upstream security policy](https://code.forgejo.org/forgejo/runner#reporting-security-vulnerabilities).
   - type: textarea
     id: problem
     attributes:

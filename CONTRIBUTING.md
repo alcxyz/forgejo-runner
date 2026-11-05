@@ -7,6 +7,8 @@ Contributions receive the same review regardless of the tools used to write them
 
 Open issues and pull requests on the
 [canonical Forgejo repository](https://git.alc.xyz/alcxyz/forgejo-runner).
+For suspected vulnerabilities, use the [security contact procedure](README.md#security-reports)
+before sharing technical details.
 Discuss changes that alter runner behavior or compatibility before implementing
 them. Keep each pull request focused and explain the problem, the change and
 how it was verified. Branch from `dev` and target `dev`; promotions to `main`
@@ -21,7 +23,7 @@ For runner changes, run:
 
 ```sh
 gofmt -w <changed Go files>
-go test ./internal/app/poll ./act/runner -run 'TestPause|TestPollerPause|TestSDNotify|TestRemoveDockerActionContainer' -count=1 -args -features=-
+go test ./internal/app/poll ./act/runner -run 'TestPause|TestPollerPause|TestSdNotify|TestRemoveDockerActionContainer' -count=1 -args -features=-
 go test -short ./... -args -features=-
 make build
 ```

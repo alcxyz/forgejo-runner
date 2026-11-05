@@ -1,0 +1,19 @@
+name: Security contact request
+description: Arrange a private conversation about a suspected vulnerability.
+title: "Private security contact requested"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue is public. Do not include vulnerability details, reproduction
+        steps, exploit code, credentials or private logs. The maintainer will
+        use this request to arrange a private reporting channel.
+        If the flaw also affects unmodified upstream, follow the
+        [upstream security policy](https://code.forgejo.org/forgejo/runner#reporting-security-vulnerabilities).
+  - type: textarea
+    id: contact
+    attributes:
+      label: Contact method
+      description: Give only a contact method or profile you are comfortable making public, so the maintainer can arrange a private conversation.
+    validations:
+      required: true

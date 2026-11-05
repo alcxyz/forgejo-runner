@@ -1,11 +1,12 @@
-// Copyright The Forgejo Authors.
-// SPDX-License-Identifier: MIT
+// Copyright 2026 alcxyz.
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 package poll
 
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -213,4 +214,36 @@ func TestPollerPauseResolvesAFailedFetch(t *testing.T) {
 
 		require.NoError(t, p.Shutdown(t.Context()))
 	})
+}
+
+func TestPauseStatePausesOnLookupError(t *testing.T) {
+	for _, previouslyPaused := range []bool{false, true} {
+		t.Run(fmt.Sprintf("previouslyPaused=%t", previouslyPaused), func(t *testing.T) {
+			parent := filepath.Join(t.TempDir(), "control")
+			require.NoError(t, os.Mkdir(parent, 0o755))
+			file := filepath.Join(parent, "paused")
+			var sent []string
+			state := pauseState{file: file, notify: func(status string) error {
+				sent = append(sent, status)
+				return nil
+			}}
+			if previouslyPaused {
+				require.NoError(t, os.WriteFile(file, nil, 0o644))
+				assert.True(t, state.update(1))
+				require.NoError(t, os.Remove(file))
+			}
+			require.NoError(t, os.Remove(parent))
+			require.NoError(t, os.WriteFile(parent, nil, 0o644))
+			_, err := os.Lstat(file)
+			require.Error(t, err)
+			require.False(t, errors.Is(err, os.ErrNotExist))
+			assert.True(t, state.update(1))
+			assert.Equal(t, []string{"paused tasks=1"}, sent)
+
+			require.NoError(t, os.Remove(parent))
+			require.NoError(t, os.Mkdir(parent, 0o755))
+			assert.False(t, state.update(0))
+			assert.Equal(t, []string{"paused tasks=1", ""}, sent)
+		})
+	}
 }

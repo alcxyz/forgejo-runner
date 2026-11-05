@@ -414,6 +414,9 @@ func removeDockerActionContainer(stepContainer container.Container, reuse bool) 
 		if reuse {
 			return nil
 		}
+		if ctx.Err() == nil {
+			return stepContainer.Remove()(ctx)
+		}
 		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Minute)
 		defer cancel()
 		return stepContainer.Remove()(cleanupCtx)
