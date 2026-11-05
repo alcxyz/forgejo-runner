@@ -1,19 +1,31 @@
-# Contributing to Forgejo Runner
+# Contributing to ALC's Forgejo Runner fork
 
-Thank you for wanting to make Forgejo Runner better!
+This fork accepts AI-assisted code, tests, documentation and discussion.
+Contributors are responsible for understanding their changes, checking their
+accuracy, testing the behavior they change and following applicable licenses.
+Contributions receive the same review regardless of the tools used to write them.
 
-## Before Sending a PR
+Open issues and pull requests on the
+[canonical Forgejo repository](https://git.alc.xyz/alcxyz/forgejo-runner).
+Discuss changes that alter runner behavior or compatibility before implementing
+them. Keep each pull request focused and explain the problem, the change and
+how it was verified. Branch from `dev` and target `dev`; promotions to `main`
+are reviewed separately and merged fast-forward only.
 
-Before sending a PR, please read the [Forgejo Contributor Guide](https://forgejo.org/docs/latest/contributor/) and the [AI Agreement](https://codeberg.org/forgejo/governance/src/commit/4cf58828436b302b314c689b6f94de62179bd515/AIAgreement.md).
+Keep existing copyright and license notices. Contributions must be compatible
+with this repository's [GPL-3.0-or-later license](LICENSE) and applicable file
+licenses. This fork's contribution policy applies here; upstream maintains its
+own contribution policy.
 
-Forgejo Actions is a complex beast with intricate compatibility requirements. Some features are also out of scope. Therefore, we recommend proposing your changes in an issue or feature request before coding up a solution. Please note that we do not accept new features without having them discussed beforehand. New features also have a lower priority than bug fixes.
+For runner changes, run:
 
-PRs do not need to be perfect.
+```sh
+gofmt -w <changed Go files>
+go test ./internal/app/poll ./act/runner -run 'TestPause|TestPollerPause|TestSDNotify|TestRemoveDockerActionContainer' -count=1 -args -features=-
+go test -short ./... -args -features=-
+make build
+```
 
-## What to Expect
-
-Be ready for lengthy feedback. It is common that enhancements or even bug fixes need multiple iterations until they are ready. Sometimes, we even realize during review that a particular feature or approach is not the right solution.
-
-## We Are Here to Help
-
-Do not hesitate to ask for help or advice. You can do so in an issue, a PR, or in the [developer room on Matrix](https://matrix.to/#/#forgejo-development:matrix.org).
+The disabled feature tests require separate Docker/Podman or LXC integration
+validation when a change affects those paths. Include the test commands,
+results and any untested behavior in the pull request.

@@ -1,27 +1,18 @@
-name: 💡 Feature Request
-description: Got an idea ready to be implemented? Suggest it here!
+name: Feature request
+description: Discuss a change to this maintained runner distribution.
 title: "feat: "
-labels: ["Kind/Enhancement"]
 body:
-- type: markdown
-  attributes:
-    value: |
-      - New ideas must be [proposed in an issue tracker dedicated to feature requests](https://code.forgejo.org/forgejo/forgejo-actions-feature-requests/issues/new?template=.forgejo%2fissue_template%2ffeature-request.yaml).
-      - Ideas that have been prepared there and are ready to be implemented can be proposed here.
-      - Be civil, and follow the [Forgejo Code of Conduct](https://codeberg.org/forgejo/code-of-conduct).
-      - Please make sure you are using the latest release of the runner and take a moment to [check that your feature hasn't already been suggested](https://code.forgejo.org/forgejo/runner/issues?q=&type=all).
-- type: textarea
-  id: url
-  attributes:
-    label:  Feature request URL
-    description: The URL to the [feature request](https://code.forgejo.org/forgejo/forgejo-actions-feature-requests/issues?labels=990) in the `ready` stage
-    placeholder: |
-      https://code.forgejo.org/forgejo/forgejo-actions-feature-requests/issues/???
-  validations:
-    required: true
-- type: textarea
-  id: Description
-  attributes:
-    label: Copy/paste of the description of the feature request
-  validations:
-    required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Explain the use case and current behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior and alternatives
+      description: Describe the desired result and any compatibility constraints.
+    validations:
+      required: true

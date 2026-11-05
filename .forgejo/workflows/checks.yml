@@ -1,0 +1,20 @@
+name: Runner checks
+on:
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    runs-on: forgejo-podman
+    container:
+      image: docker.io/library/node:24-bookworm@sha256:994ed664b2644b1b186516daaa1fb7aa93a1e717da2a0ff17094c765d5dbfde1
+    steps:
+      - uses: https://data.forgejo.org/actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: https://data.forgejo.org/actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version-file: go.mod
+      - name: Check Go formatting
+        run: test -z "$(gofmt -l act/runner/action_cleanup_test.go internal/app/poll/pause.go internal/app/poll/pause_test.go)"
+      - name: Unit tests without external container engines
+        run: go test -short -timeout 5m ./... -args -features=-

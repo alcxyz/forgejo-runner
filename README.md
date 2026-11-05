@@ -4,17 +4,58 @@ A daemon that connects to a Forgejo instance and runs jobs for continuous integr
 
 Forgejo Runner is distributed under the terms of the [GPL version 3.0](LICENSE) or any later version.
 
-## Issues
+## Maintained distribution
 
-* [Feature requests](https://code.forgejo.org/forgejo/forgejo-actions-feature-requests)
-* [Runner-specific issues](https://code.forgejo.org/forgejo/runner/issues)
-* [Forgejo Actions issues](https://codeberg.org/forgejo/forgejo/issues?q=&type=all&labels=96148&state=open)
+This is ALC's independently maintained fork of [Forgejo Runner](https://code.forgejo.org/forgejo/runner),
+based on upstream v13.2.1. It is not an official Forgejo release. Downstream
+modifications began on 2026-11-05; existing copyright and license notices apply.
 
-It is totally okay to report issues in the "wrong" place; identifying the right place is hard. In the worst case, we will ask you to open it somewhere else because issues cannot be transferred between instances.
+The [Forgejo repository](https://git.alc.xyz/alcxyz/forgejo-runner) is canonical
+for code, issues, pull requests and releases. The
+[GitHub repository](https://github.com/alcxyz/forgejo-runner) is a distribution mirror.
+Report problems and contribute changes on Forgejo. AI-assisted contributions
+are welcome under our [contribution guide](CONTRIBUTING.md).
 
-### Reporting Security Vulnerabilities
+### Changes from upstream
 
-Please report security-related issues to [security@forgejo.org](mailto:security@forgejo.org) using [encryption](https://keyoxide.org/security@forgejo.org).
+- Docker action containers receive an independent one-minute cleanup timeout
+  after cancellation, preserving context values and honoring container reuse.
+- Setting `FORGEJO_RUNNER_PAUSE_FILE` enables a pause file. While that file
+  exists, the runner stops requesting new work and lets active jobs finish
+  without a drain deadline. It resolves any outstanding uncertain fetch before
+  reporting the runner idle. Removing the file resumes normal fetching.
+- When `NOTIFY_SOCKET` is set, pause state is reported as systemd status text
+  `paused tasks=N`. Wait for `paused tasks=0` before stopping or restarting the
+  runner. This is a status notification, not a runner readiness notification.
+
+For example, configure `FORGEJO_RUNNER_PAUSE_FILE=/run/forgejo-runner/paused`
+in the runner service, then create that file to drain it. Ensure the service
+can read the file and the directory is managed by the service administrator.
+This fork adds the runner primitive; scheduling a restart belongs to the
+service manager or an external controller.
+
+### Versions and updates
+
+Fork releases use `v<upstream-version>-alc.<revision>`, for example
+`v13.2.1-alc.1`. Keep upstream tags unchanged. `main` holds reviewed releases;
+`dev` holds integration work. Bring each upstream release into a change on
+`dev`, retain our changes, and compare the resulting diff against that upstream
+tag. Run the focused regressions, the unit suite and a local build before
+promotion and tagging. Test drain and cancellation behavior in a disposable
+runner before deploying a new version.
+
+Build a versioned binary locally with:
+
+```sh
+make build RELEASE_VERSION=13.2.1-alc.1
+```
+
+Our CI runs unit tests on `dev` and `main` pushes with external engine
+features disabled. It does not automatically execute code from public fork
+pull requests on the shared runners; maintainers review contributions before
+bringing them into integration. It does not
+claim to validate Docker, Podman, LXC or a live Forgejo server. Upstream release
+publishing and cascading workflows are not used by this fork.
 
 ## Contributing
 
@@ -22,7 +63,7 @@ See the [contribution guide](CONTRIBUTING.md).
 
 ## Architectures & OS
 
-The Forgejo runner is supported and tested on `amd64` and `arm64` ([binaries](https://code.forgejo.org/forgejo/runner/releases) and [containers](https://code.forgejo.org/forgejo/-/packages/container/runner/versions)) on Operating Systems based on the Linux kernel.
+Upstream Forgejo Runner supports `amd64` and `arm64` ([binaries](https://code.forgejo.org/forgejo/runner/releases) and [containers](https://code.forgejo.org/forgejo/-/packages/container/runner/versions)) on Operating Systems based on the Linux kernel.
 
 Work may be in progress for other architectures and you can browse the corresponding issues to figure out how they make progress. If you are interested in helping them move forward, open an issue. The most challenging part is to setup and maintain a native runner long term. Once it is supported by Forgejo, the runner is expected to be available 24/7 which can be challenging. Otherwise debugging any architecture specific problem won't be possible.
 
